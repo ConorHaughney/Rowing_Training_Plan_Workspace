@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block extra_css %}
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+{% endblock %}
+
+{% block title %}Rowing Training Plan - Home{% endblock %}
+
+{% block body_block %}
+    <div class="hero-section">
+        <h1>Glasgow University Rowing Website</h1>
+        <p class="tagline">Stay on track with your training schedule</p>
+        <a href="{% url 'training_plan_data:training_plan' %}" class="cta-button">View Training Schedule</a>
+    </div>
+{% endblock %}
+
+{% block js %}
+    <!-- No JavaScript needed on home page, but keep block to satisfy template -->
+{% endblock %}

@@ -21,7 +21,6 @@ from django.conf.urls.static import static
 from training_plan_data import views  # Import views from your app instead
 
 urlpatterns = [
-    path('', views.home, name='home'),  # Use the view from training_plan_data
-    path('training-plan/', include('training_plan_data.urls')),
     path('admin/', admin.site.urls),
+    path('', include('training_plan_data.urls')),  # Use include() to include app urls
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

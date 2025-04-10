@@ -7,6 +7,63 @@ import pandas as pd
 from datetime import datetime
 import traceback
 import re 
+from django.http import JsonResponse
+
+def training_data_api(request):
+    """API endpoint for React to fetch training data"""
+    data = list(SheetData.objects.all().order_by('date').values(
+        'id', 'day', 'date', 'time_session_1', 'session_1', 'time_session_2', 'session_2'
+    ))
+    
+    # Convert date objects to strings for JSON serialization
+    for item in data:
+        if 'date' in item:
+            item['date'] = item['date'].isoformat()
+    
+    return JsonResponse(data, safe=False)
+
+def home(request):
+    return render(request, 'home.html')
+
+def training_plan(request):
+    # Handle form submission for manual import
+    if request.method == 'POST' and 'import_data' in request.POST:
+        try:
+            # Import data using the import script
+            rows_imported = import_training_data(clear_existing=True)
+            messages.success(request, f"Training data imported successfully! {rows_imported} rows imported.")
+        except Exception as e:
+            messages.error(request, f"Error importing data: {str(e)}")
+            print(f"Error during manual import: {e}")
+            traceback.print_exc()
+        return redirect('training_plan_data:home')
+    
+    # Auto-refresh data on every page load
+    try:
+        print("Automatically refreshing data from Google Sheet...")
+        rows_imported = import_training_data(clear_existing=True)
+        if rows_imported > 0:
+            print(f"Auto-imported {rows_imported} rows")
+        else:
+            print("No data imported during auto-refresh")
+    except Exception as e:
+        print(f"Error during auto-refresh: {e}")
+        traceback.print_exc()
+    
+    # Get the latest data
+    training_data = SheetData.objects.all().order_by('date')
+    
+    # Simple count print - keeping this one for basic diagnostics
+    print(f"Found {training_data.count()} training data records")
+    
+    # Pass current date to the template to highlight today's record
+    context = {
+        'training_data': training_data,
+        'current_date': datetime.now().date(),
+        'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    }
+    
+    return render(request, 'training_plan.html', context)
 
 def import_training_data(clear_existing=True):
     """
@@ -244,16 +301,6 @@ def import_training_data(clear_existing=True):
                 )
                 rows_imported += 1
                 
-                # Debug output for first few rows
-                if idx < 3:
-                    print(f"Row {idx} - Created record:")
-                    print(f"  Day: {day_val}")
-                    print(f"  Date: {date_obj.date()}")
-                    print(f"  Morning time: {time_session_1}")
-                    print(f"  Morning session: {session_1}")
-                    print(f"  Afternoon time: {time_session_2}")
-                    print(f"  Afternoon session: {session_2}")
-                
             except Exception as e:
                 print(f"Error importing row {idx}: {e}")
                 print(f"Row data: {row}")
@@ -266,42 +313,3 @@ def import_training_data(clear_existing=True):
         print(f"Error during import: {e}")
         traceback.print_exc()
         return 0
-def home(request):
-    # Handle form submission for manual import
-    if request.method == 'POST' and 'import_data' in request.POST:
-        try:
-            # Import data using the import script
-            rows_imported = import_training_data(clear_existing=True)
-            messages.success(request, f"Training data imported successfully! {rows_imported} rows imported.")
-        except Exception as e:
-            messages.error(request, f"Error importing data: {str(e)}")
-            print(f"Error during manual import: {e}")
-            traceback.print_exc()
-        return redirect('training_plan_data:home')
-    
-    # Auto-refresh data on every page load
-    try:
-        print("Automatically refreshing data from Google Sheet...")
-        rows_imported = import_training_data(clear_existing=True)
-        if rows_imported > 0:
-            print(f"Auto-imported {rows_imported} rows")
-        else:
-            print("No data imported during auto-refresh")
-    except Exception as e:
-        print(f"Error during auto-refresh: {e}")
-        traceback.print_exc()
-    
-    # Get the latest data
-    training_data = SheetData.objects.all().order_by('date')
-    
-    # Simple count print - keeping this one for basic diagnostics
-    print(f"Found {training_data.count()} training data records")
-    
-    # Pass current date to the template to highlight today's record
-    context = {
-        'training_data': training_data,
-        'current_date': datetime.now().date(),
-        'last_updated': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    }
-    
-    return render(request, 'training_plan_template/home.html', context)

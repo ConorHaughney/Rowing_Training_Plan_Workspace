@@ -1,0 +1,10 @@
+h1 {
+    color: red !important; 
+    border: 5px solid blue !important;
+    padding: 20px !important;
+}
+
+.hero-section {
+    background-color: yellow !important;
+    border: 3px dashed red !important;
+}
